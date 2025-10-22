@@ -1,0 +1,56 @@
+@use "../base/mixins.scss" as *;
+
+.title-menu {
+	@include title;
+	font-size: 20px;
+
+	a {
+		display: inline-block;
+		text-decoration: none;
+		color: inherit;
+		font-family: inherit;
+		font-size: inherit;
+		font-weight: inherit;
+		line-height: inherit;
+		padding: 0;
+		margin: 0;
+		cursor: pointer;
+
+		&:hover {
+			text-decoration: none;
+			color: inherit;
+			opacity: 0.8;
+		}
+
+		&:focus {
+			outline: none;
+		}
+	}
+}
+
+.title-h1-italic {
+	@include title;
+	font-size: 24px;
+	font-style: italic;
+}
+
+.title-h2-bold {
+	@include title;
+	font-size: 24px;
+	font-weight: 500;
+}
+
+.title-h3-title {
+	@include title;
+	font-size: 18px;
+	font-style: normal;
+	font-weight: 500;
+}
+
+.title-h1-title {
+	@include title;
+	font-size: 30px;
+	font-style: normal;
+	font-weight: 500;
+	margin-top: 120px;
+}
