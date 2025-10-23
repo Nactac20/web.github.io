@@ -30,7 +30,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: '.'  # ← Весь репозиторий — это ваш сайт
+          path: './lab3'
 
       - name: Deploy to GitHub Pages
         id: deployment
