@@ -9,11 +9,15 @@ const transformWeatherData = (apiData) => {
   return {
     city: apiData.name,
     temperature: Math.round(apiData.main.temp),
+    feels_like: Math.round(apiData.main.feels_like),
     humidity: apiData.main.humidity,
+    pressure: apiData.main.pressure,
     windSpeed: Math.round(apiData.wind.speed * 10) / 10,
     cloudiness: apiData.clouds.all,
     description: apiData.weather[0].description,
-    icon: apiData.weather[0].icon
+    icon: apiData.weather[0].icon,
+    sunrise: apiData.sys.sunrise,
+    sunset: apiData.sys.sunset
   };
 };
 
@@ -70,6 +74,109 @@ export const fetchWeatherData = async (city) => {
   }
 };
 
+export const fetchWeatherDataByLocation = async (lat, lon) => {
+  if (!isApiKeyConfigured()) {
+    throw new Error('API key not configured.');
+  }
+
+  if (lat === undefined || lon === undefined) {
+    throw new Error('Latitude and longitude are required for location-based weather data.');
+  }
+
+  try {
+    const url = `${BASE_URL}/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`;
+    
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      const error = new Error(errorData.message || 'API request failed');
+      error.response = { status: response.status, data: errorData };
+      throw error;
+    }
+    
+    const data = await response.json();
+
+    return transformWeatherData(data);
+    
+  } catch (error) {
+    console.error('Weather API Error:', error);
+    handleApiError(error);
+  }
+};
+
+export const getCurrentLocation = () => {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error('Geolocation is not supported by this browser.'));
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        resolve({
+          lat: position.coords.latitude,
+          lon: position.coords.longitude
+        });
+      },
+      (error) => {
+        let errorMessage;
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage = 'Location access denied by user.';
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage = 'Location information unavailable.';
+            break;
+          case error.TIMEOUT:
+            errorMessage = 'Location request timed out.';
+            break;
+          default:
+            errorMessage = 'An unknown error occurred while retrieving location.';
+            break;
+        }
+        reject(new Error(errorMessage));
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 300000
+      }
+    );
+  });
+};
+
+export const fetchWeatherForecastByLocation = async (lat, lon) => {
+  if (!isApiKeyConfigured()) {
+    throw new Error('API key not configured.');
+  }
+
+  if (lat === undefined || lon === undefined) {
+    throw new Error('Latitude and longitude are required for location-based weather forecast.');
+  }
+
+  try {
+    const url = `${BASE_URL}/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`;
+    
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      const error = new Error(errorData.message || 'Forecast API request failed');
+      error.response = { status: response.status, data: errorData };
+      throw error;
+    }
+    
+    const data = await response.json();
+
+    return transformForecastData(data);
+    
+  } catch (error) {
+    console.error('Forecast API Error:', error);
+    handleApiError(error);
+  }
+};
+
 export const fetchWeatherForecast = async (city) => {
   if (!isApiKeyConfigured()) {
     throw new Error('API key not configured.');
@@ -103,7 +210,6 @@ export const fetchWeatherForecast = async (city) => {
 };
 
 const transformForecastData = (apiData) => {
-
   const dailyForecasts = {};
   
   apiData.list.forEach(item => {
@@ -144,7 +250,10 @@ const transformForecastData = (apiData) => {
     };
   });
 
-  return forecastArray.slice(0, 7);
+  return {
+    list: apiData.list,
+    daily: forecastArray.slice(0, 5)
+  };
 };
 
 export const getCitySuggestions = async (input) => {

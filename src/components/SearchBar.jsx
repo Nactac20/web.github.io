@@ -1,13 +1,14 @@
 import React from 'react';
 import '../styles/SearchBar.css';
+import { getTranslation } from '../utils/translations';
 
-function SearchBar({ onSearch, onInputChange, value, loading }) {
+function SearchBar({ onSearch, onInputChange, value, loading, language = 'en' }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     onSearch(value);
   };
 
-  const handleInputChange = (e) => {
+  const onInputChangeHandler = (e) => {
     onInputChange(e.target.value);
   };
 
@@ -16,9 +17,9 @@ function SearchBar({ onSearch, onInputChange, value, loading }) {
       <div className="search-input-container">
         <input
           type="text"
-          placeholder="Enter city name..."
+          placeholder={getTranslation(language, 'enterCityName')}
           value={value}
-          onChange={handleInputChange}
+          onChange={onInputChangeHandler}
           className="search-input"
           disabled={loading}
         />
@@ -27,7 +28,7 @@ function SearchBar({ onSearch, onInputChange, value, loading }) {
           className="search-button"
           disabled={loading}
         >
-          {loading ? 'Searching...' : 'Search'}
+          {loading ? getTranslation(language, 'searching') : getTranslation(language, 'search')}
         </button>
       </div>
     </form>

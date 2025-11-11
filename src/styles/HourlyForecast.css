@@ -1,16 +1,16 @@
-.weekly-forecast {
+.hourly-forecast {
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
   border-radius: 16px;
   padding: 20px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  width: 90vw;
-  max-width: 400px;
+  width: 95vw;
+  max-width: 350px;
   margin: 0 auto;
 }
 
-.forecast-title {
+.hourly-forecast-title {
   font-size: 18px;
   font-weight: 600;
   color: #333;
@@ -18,13 +18,13 @@
   text-align: center;
 }
 
-.forecast-container {
+.hourly-container {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-.forecast-day {
+.hourly-item {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -34,38 +34,26 @@
   flex-shrink: 0;
 }
 
-.forecast-date {
+.hourly-time {
   font-size: 14px;
   color: #666;
   min-width: 60px;
 }
 
-.forecast-day-name {
-  font-size: 16px;
-  font-weight: 500;
-  color: #333;
-  min-width: 80px;
-}
-
-.forecast-weather-icon {
+.hourly-weather-icon {
   font-size: 24px;
   min-width: 30px;
 }
 
-.forecast-temperatures {
-  display: flex;
-  gap: 4px;
-  align-items: center;
-  margin-left: auto;
-}
-
-.max-temp {
+.hourly-temp {
   font-size: 16px;
   font-weight: 600;
   color: #333;
+  min-width: 60px;
 }
 
-.min-temp {
+.hourly-wind {
   font-size: 14px;
   color: #666;
+  margin-left: auto;
 }

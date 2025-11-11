@@ -1,116 +1,94 @@
-interface OpenWeatherMapWeather {
+export interface WeatherMain {
+  temp: number;
+  feels_like: number;
+  humidity: number;
+  pressure: number;
+}
+export interface WeatherDescription {
   description: string;
   icon: string;
 }
-
-interface OpenWeatherMapMain {
-  temp: number;
-  humidity: number;
-}
-
-interface OpenWeatherMapWind {
+export interface WindData {
   speed: number;
 }
-
-interface OpenWeatherMapClouds {
+export interface CloudsData {
   all: number;
 }
-
-interface OpenWeatherMapResponse {
+export interface SysData {
+  sunrise: number;
+  sunset: number;
+}
+export interface WeatherApiData {
+  main: WeatherMain;
+  weather: WeatherDescription[];
   name: string;
-  main: OpenWeatherMapMain;
-  wind: OpenWeatherMapWind;
-  clouds: OpenWeatherMapClouds;
-  weather: OpenWeatherMapWeather[];
+  wind: WindData;
+  clouds: CloudsData;
+  sys: SysData;
 }
-
-interface OpenWeatherMapForecastItem {
+export interface ForecastItem {
   dt_txt: string;
-  main: {
-    temp: number;
-  };
-  weather: OpenWeatherMapWeather[];
+  main: WeatherMain;
+  weather: WeatherDescription[];
 }
-
-interface OpenWeatherMapForecastResponse {
-  list: OpenWeatherMapForecastItem[];
+export interface ForecastApiData {
+  list: ForecastItem[];
 }
-
-interface WeatherData {
-  city: string;
-  temperature: number;
-  humidity: number;
-  windSpeed: number;
-  cloudiness: number;
-  description: string;
-  icon: string;
-}
-
-interface ForecastDay {
-  date: string;
-  dayName: string;
-  minTemp: number;
-  maxTemp: number;
-  description: string;
-  icon: string;
-}
-
-interface ApiError extends Error {
+export interface ApiError extends Error {
   response?: {
     status: number;
-    data?: any;
+    data?: {
+      message?: string;
+    };
   };
+  request?: any;
 }
 
 const API_KEY = import.meta.env.VITE_OWM_API_KEY;
 const BASE_URL = 'https://api.openweathermap.org';
 
-const isApiKeyConfigured = (): boolean => {
-  return typeof API_KEY === 'string' && API_KEY !== 'your_openweathermap_api_key_here' && API_KEY.trim() !== '';
+const isApiKeyConfigured = () => {
+  return API_KEY && API_KEY !== 'your_openweathermap_api_key_here' && API_KEY.trim() !== '';
 };
 
-const transformWeatherData = (apiData: OpenWeatherMapResponse): WeatherData => {
+const transformWeatherData = (apiData: WeatherApiData) => {
   return {
     city: apiData.name,
     temperature: Math.round(apiData.main.temp),
+    feels_like: Math.round(apiData.main.feels_like),
     humidity: apiData.main.humidity,
+    pressure: apiData.main.pressure,
     windSpeed: Math.round(apiData.wind.speed * 10) / 10,
     cloudiness: apiData.clouds.all,
     description: apiData.weather[0].description,
-    icon: apiData.weather[0].icon
+    icon: apiData.weather[0].icon,
+    sunrise: apiData.sys.sunrise,
+    sunset: apiData.sys.sunset
   };
 };
 
-const handleApiError = (error: unknown): never => {
-  if (error && typeof error === 'object' && 'response' in error) {
-    const apiError = error as ApiError;
-    if (apiError.response) {
-      switch (apiError.response.status) {
-        case 404:
-          throw new Error('City not found.');
-        case 401:
-          throw new Error('Invalid API key.');
-        case 429:
-          throw new Error('API rate limit exceeded.');
-        default:
-          throw new Error(`API Error: ${apiError.response.status} - ${apiError.response.data?.message || 'Unknown error'}`);
-      }
+const handleApiError = (error: ApiError) => {
+  if (error.response) {
+    switch (error.response.status) {
+      case 404:
+        throw new Error('City not found. Please check the city name');
+      case 401:
+        throw new Error('Invalid API key.');
+      case 429:
+        throw new Error('API rate limit exceeded.');
+      default:
+        throw new Error(`API Error: ${error.response.status} - ${error.response.data?.message || 'Unknown error'}`);
     }
-  }
-  
-  if (error && typeof error === 'object' && 'request' in error) {
+  } 
+  else if (error.request) {
     throw new Error('Network error. Please check your internet connection.');
+  } 
+  else {
+    throw new Error(`Request failed: ${error.message}`);
   }
-  
-  if (error && typeof error === 'object' && 'message' in error) {
-    const err = error as Error;
-    throw new Error(`Request failed: ${err.message}`);
-  }
-  
-  throw new Error('An unknown error occurred');
 };
 
-export const fetchWeatherData = async (city: string): Promise<WeatherData> => {
+export const fetchWeatherData = async (city: string) => {
   if (!isApiKeyConfigured()) {
     throw new Error('API key not configured.');
   }
@@ -132,19 +110,120 @@ export const fetchWeatherData = async (city: string): Promise<WeatherData> => {
       throw error;
     }
     
-    const data: OpenWeatherMapResponse = await response.json();
-    
+    const data = await response.json();
+
     return transformWeatherData(data);
     
   } catch (error) {
     console.error('Weather API Error:', error);
-    handleApiError(error);
+    handleApiError(error as ApiError);
   }
-
-  return Promise.reject('Should never reach this point');
 };
 
-export const fetchWeatherForecast = async (city: string): Promise<ForecastDay[]> => {
+export const fetchWeatherDataByLocation = async (lat: number, lon: number) => {
+  if (!isApiKeyConfigured()) {
+    throw new Error('API key not configured.');
+  }
+
+  if (lat === undefined || lon === undefined) {
+    throw new Error('Latitude and longitude are required for location-based weather data.');
+  }
+
+  try {
+    const url = `${BASE_URL}/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`;
+    
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      const error = new Error(errorData.message || 'API request failed') as ApiError;
+      error.response = { status: response.status, data: errorData };
+      throw error;
+    }
+    
+    const data = await response.json();
+
+    return transformWeatherData(data);
+    
+  } catch (error) {
+    console.error('Weather API Error:', error);
+    handleApiError(error as ApiError);
+  }
+};
+
+export const getCurrentLocation = (): Promise<{lat: number, lon: number}> => {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error('Geolocation is not supported by this browser.'));
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        resolve({
+          lat: position.coords.latitude,
+          lon: position.coords.longitude
+        });
+      },
+      (error) => {
+        let errorMessage;
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage = 'Location access denied by user.';
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage = 'Location information unavailable.';
+            break;
+          case error.TIMEOUT:
+            errorMessage = 'Location request timed out.';
+            break;
+          default:
+            errorMessage = 'An unknown error occurred while retrieving location.';
+            break;
+        }
+        reject(new Error(errorMessage));
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 300000
+      }
+    );
+  });
+};
+
+export const fetchWeatherForecastByLocation = async (lat: number, lon: number) => {
+  if (!isApiKeyConfigured()) {
+    throw new Error('API key not configured.');
+  }
+
+  if (lat === undefined || lon === undefined) {
+    throw new Error('Latitude and longitude are required for location-based weather forecast.');
+  }
+
+  try {
+    const url = `${BASE_URL}/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`;
+    
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      const error = new Error(errorData.message || 'Forecast API request failed') as ApiError;
+      error.response = { status: response.status, data: errorData };
+      throw error;
+    }
+    
+    const data = await response.json();
+
+    return transformForecastData(data);
+    
+  } catch (error) {
+    console.error('Forecast API Error:', error);
+    handleApiError(error as ApiError);
+  }
+};
+
+export const fetchWeatherForecast = async (city: string) => {
   if (!isApiKeyConfigured()) {
     throw new Error('API key not configured.');
   }
@@ -166,20 +245,18 @@ export const fetchWeatherForecast = async (city: string): Promise<ForecastDay[]>
       throw error;
     }
     
-    const data: OpenWeatherMapForecastResponse = await response.json();
-    
+    const data = await response.json();
+
     return transformForecastData(data);
     
   } catch (error) {
     console.error('Forecast API Error:', error);
-    handleApiError(error);
+    handleApiError(error as ApiError);
   }
-  
-  return Promise.reject('Should never reach this point');
 };
 
-const transformForecastData = (apiData: OpenWeatherMapForecastResponse): ForecastDay[] => {
-  const dailyForecasts: { [key: string]: { date: string; temperatures: number[]; weatherItems: OpenWeatherMapWeather[] } } = {};
+const transformForecastData = (apiData: ForecastApiData) => {
+  const dailyForecasts: Record<string, any> = {};
   
   apiData.list.forEach(item => {
     const date = item.dt_txt.split(' ')[0];
@@ -199,11 +276,13 @@ const transformForecastData = (apiData: OpenWeatherMapForecastResponse): Forecas
     });
   });
   
-  const forecastArray: ForecastDay[] = Object.values(dailyForecasts).map(day => {
+  const forecastArray = Object.values(dailyForecasts).map((day: any) => {
     const minTemp = Math.min(...day.temperatures);
     const maxTemp = Math.max(...day.temperatures);
-    const noonWeather = day.weatherItems.find(w => w.description.includes('clear')) || 
+    
+    const noonWeather = day.weatherItems.find((w: any) => w.description.includes('clear')) || 
                        day.weatherItems[Math.floor(day.weatherItems.length / 2)];
+
     const dateObj = new Date(day.date);
     const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'short' });
     
@@ -216,17 +295,14 @@ const transformForecastData = (apiData: OpenWeatherMapForecastResponse): Forecas
       icon: noonWeather.icon
     };
   });
-  
-  return forecastArray.slice(0, 7);
+
+  return {
+    list: apiData.list,
+    daily: forecastArray.slice(0, 5)
+  };
 };
 
-interface GeocodingLocation {
-  name: string;
-  country: string;
-  state?: string;
-}
-
-export const getCitySuggestions = async (input: string): Promise<string[]> => {
+export const getCitySuggestions = async (input: string) => {
   if (!isApiKeyConfigured() || !input || input.length < 3) {
     return [];
   }
@@ -240,9 +316,9 @@ export const getCitySuggestions = async (input: string): Promise<string[]> => {
       return [];
     }
     
-    const data: GeocodingLocation[] = await response.json();
+    const data = await response.json();
     
-    return data.map(location => {
+    return data.map((location: any) => {
       const { name, country, state } = location;
       return state ? `${name}, ${state}, ${country}` : `${name}, ${country}`;
     });

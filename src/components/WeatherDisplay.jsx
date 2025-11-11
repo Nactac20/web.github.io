@@ -1,24 +1,37 @@
 import React from 'react';
 import '../styles/WeatherDisplay.css';
+import { getTranslation } from '../utils/translations';
 
-function WeatherDisplay({ data }) {
+function WeatherDisplay({ data, language = 'en' }) {
   if (!data) return null;
 
-  const { city, temperature, humidity, windSpeed, cloudiness, description, icon } = data;
+  const { city, icon } = data;
 
-  const getWeatherIcon = (iconCode) => {
-    const iconMap = {
-      '01d': '☀️', '01n': '🌙',
-      '02d': '⛅', '02n': '☁️',
-      '03d': '☁️', '03n': '☁️',
-      '04d': '☁️', '04n': '☁️',
-      '09d': '🌧️', '09n': '🌧️',
-      '10d': '🌦️', '10n': '🌧️',
-      '11d': '⛈️', '11n': '⛈️',
-      '13d': '❄️', '13n': '❄️',
-      '50d': '🌫️', '50n': '🌫️'
-    };
-    return iconMap[iconCode] || '🌤️';
+  const getCurrentTime = () => {
+    return new Date().toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+  };
+
+  const getCurrentDate = () => {
+    const now = new Date();
+    const dayIndex = now.getDay();
+    const monthIndex = now.getMonth();
+    const day = now.getDate();
+    
+    const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const monthNames = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
+    
+    const dayName = getTranslation(language, dayNames[dayIndex]);
+    const monthName = getTranslation(language, monthNames[monthIndex]);
+    
+    if (language === 'ru') {
+      return `${dayName}, ${day} ${monthName}`;
+    } else {
+      return `${dayName}, ${day} ${monthName}`;
+    }
   };
 
   return (
@@ -28,35 +41,12 @@ function WeatherDisplay({ data }) {
           <h2 className="city-name">{city}</h2>
           
           <div className="temperature-section">
-            <div className="weather-icon">
-              {getWeatherIcon(icon)}
+            <div className="current-time">
+              {getCurrentTime()}
             </div>
-            <div className="temperature">
-              {Math.round(temperature)}°C
+            <div className="current-date">
+              {getCurrentDate()}
             </div>
-            <div className="weather-description">
-              {description}
-            </div>
-          </div>
-        </div>
-        
-        <div className="weather-details">
-          <div className="detail-item">
-            <div className="detail-icon">💨</div>
-            <div className="detail-label">Wind</div>
-            <div className="detail-value">{windSpeed} m/s</div>
-          </div>
-          
-          <div className="detail-item">
-            <div className="detail-icon">💧</div>
-            <div className="detail-label">Humidity</div>
-            <div className="detail-value">{humidity}%</div>
-          </div>
-          
-          <div className="detail-item">
-            <div className="detail-icon">☁️</div>
-            <div className="detail-label">Clouds</div>
-            <div className="detail-value">{cloudiness}%</div>
           </div>
         </div>
       </div>
